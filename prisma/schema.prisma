@@ -1,0 +1,265 @@
+// Schema da Escola Ministerial.
+//
+// Duas camadas conforme decidido no brainstorm:
+//  - Currículo (estável, reutilizável): Nivel > Modulo > Materia
+//  - Oferta (o que roda num período): Turma + Atribuicao (materia+professor) + Aula
+//
+// Junções que sustentam a operação:
+//  - Matricula  = Aluno x Turma  (guarda status da apostila e situação do aluno)
+//  - Presenca   = Matricula x Aula
+//
+// Postgres (Neon). Os status são strings validadas na camada de aplicação
+// (ver src/lib/constants.ts) em vez de enums nativos — mantém o modelo simples
+// e portável.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Currículo ────────────────────────────────────────────────────────────────
+
+model Nivel {
+  id      String   @id @default(cuid())
+  nome    String
+  ordem   Int
+  modulos Modulo[]
+
+  @@map("niveis")
+}
+
+model Modulo {
+  id        String   @id @default(cuid())
+  nome      String
+  ordem     Int
+  maxFaltas Int      @default(3) // reprova ao ultrapassar este número de faltas no módulo
+  nivel     Nivel    @relation(fields: [nivelId], references: [id], onDelete: Cascade)
+  nivelId   String
+  materias  Materia[]
+  turmas    Turma[]
+  provas    Prova[]
+
+  @@unique([nivelId, ordem])
+  @@map("modulos")
+}
+
+model Materia {
+  id          String        @id @default(cuid())
+  nome        String
+  ordem       Int
+  modulo      Modulo         @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+  moduloId    String
+  atribuicoes Atribuicao[]
+  provas      ProvaMateria[]
+
+  @@map("materias")
+}
+
+model Membro {
+  id         String   @id @default(cuid())
+  nome       String
+  email      String?  @unique
+  telefone   String?
+  cargo      String   @default("COMUM") // ADMIN, LIDER_CELULA, COMUM
+  token      String   @unique @default(cuid())
+  createdAt  DateTime @default(now())
+
+  celulaId   String?
+  celula     Celula?  @relation("MembroCelula", fields: [celulaId], references: [id], onDelete: SetNull)
+  
+  celulasLideradas Celula[] @relation("LiderCelula")
+
+  redes      Rede[]   @relation("MembroRede")
+  
+  matriculas Matricula[]
+  historicoTrilho HistoricoTrilho[]
+
+  @@map("membros")
+}
+
+model Celula {
+  id         String   @id @default(cuid())
+  nome       String
+  dia        String?
+  horario    String?
+  bairro     String?
+  
+  liderId    String?
+  lider      Membro?  @relation("LiderCelula", fields: [liderId], references: [id], onDelete: SetNull)
+  
+  membros    Membro[] @relation("MembroCelula")
+  createdAt  DateTime @default(now())
+
+  @@map("celulas")
+}
+
+model Rede {
+  id         String   @id @default(cuid())
+  nome       String
+  membros    Membro[] @relation("MembroRede")
+
+  @@map("redes")
+}
+
+model HistoricoTrilho {
+  id            String   @id @default(cuid())
+  etapa         String   
+  dataConclusao DateTime @default(now())
+  
+  membroId      String
+  membro        Membro   @relation(fields: [membroId], references: [id], onDelete: Cascade)
+
+  @@unique([membroId, etapa])
+  @@map("historico_trilho")
+}
+
+model Professor {
+  id          String       @id @default(cuid())
+  nome        String
+  telefone    String?
+  email       String?
+  atribuicoes Atribuicao[]
+
+  @@map("professores")
+}
+
+
+
+// ── Oferta ───────────────────────────────────────────────────────────────────
+
+// Uma turma é a oferta de UM módulo num período (ex.: "Nível 1 — 2026.1, Dom 9h").
+model Turma {
+  id          String       @id @default(cuid())
+  nome        String
+  ano         Int
+  periodo     String? // texto livre: "Domingos 9h", "Quartas 19h30"...
+  ativa       Boolean      @default(true)
+  // Quando preenchido, a turma está encerrada: registros congelados e
+  // aprovação/reprovação finalizadas.
+  encerradaEm DateTime?
+  modulo      Modulo       @relation(fields: [moduloId], references: [id], onDelete: Restrict)
+  moduloId    String
+  atribuicoes Atribuicao[]
+  matriculas  Matricula[]
+  createdAt   DateTime     @default(now())
+
+  @@map("turmas")
+}
+
+// Quem ensina cada matéria DENTRO de uma turma. É aqui que o professor é
+// vinculado — a mesma matéria pode ter professores diferentes em turmas
+// diferentes, e um professor pode dar a mesma matéria em várias turmas.
+model Atribuicao {
+  id          String     @id @default(cuid())
+  turma       Turma      @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+  turmaId     String
+  materia     Materia    @relation(fields: [materiaId], references: [id], onDelete: Cascade)
+  materiaId   String
+  professor   Professor? @relation(fields: [professorId], references: [id], onDelete: SetNull)
+  professorId String?
+  aulas       Aula[]
+
+  @@unique([turmaId, materiaId])
+  @@map("atribuicoes")
+}
+
+// Um encontro de uma matéria numa turma, com data. A presença é marcada por aula.
+model Aula {
+  id           String      @id @default(cuid())
+  data         DateTime
+  tema         String?
+  atribuicao   Atribuicao  @relation(fields: [atribuicaoId], references: [id], onDelete: Cascade)
+  atribuicaoId String
+  presencas    Presenca[]
+
+  @@map("aulas")
+}
+
+// ── Junções de operação ──────────────────────────────────────────────────────
+
+model Matricula {
+  id             String     @id @default(cuid())
+  membro         Membro     @relation(fields: [membroId], references: [id], onDelete: Cascade)
+  membroId       String
+  turma          Turma      @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+  turmaId        String
+  status         String       @default("CURSANDO") // ver MATRICULA_STATUS
+  apostilaStatus String       @default("PENDENTE") // ver APOSTILA_STATUS — pagamento por módulo
+  presencas      Presenca[]
+  certificado    Certificado?
+  notas          Nota[]
+  createdAt      DateTime     @default(now())
+
+  @@unique([membroId, turmaId])
+  @@map("matriculas")
+}
+
+// ── Avaliações ───────────────────────────────────────────────────────────────
+
+// Prova definida no MÓDULO (fixa): nome + quais aulas/matérias caem. As notas
+// são lançadas por aluno (matrícula) e são apenas informativas — não afetam a
+// aprovação, que continua por frequência + apostila.
+model Prova {
+  id         String         @id @default(cuid())
+  nome       String
+  ordem      Int
+  notaMaxima Float          @default(10)
+  modulo     Modulo         @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+  moduloId   String
+  materias   ProvaMateria[]
+  notas      Nota[]
+
+  @@map("provas")
+}
+
+model ProvaMateria {
+  id        String  @id @default(cuid())
+  prova     Prova   @relation(fields: [provaId], references: [id], onDelete: Cascade)
+  provaId   String
+  materia   Materia @relation(fields: [materiaId], references: [id], onDelete: Cascade)
+  materiaId String
+
+  @@unique([provaId, materiaId])
+  @@map("prova_materias")
+}
+
+model Nota {
+  id          String    @id @default(cuid())
+  valor       Float
+  prova       Prova     @relation(fields: [provaId], references: [id], onDelete: Cascade)
+  provaId     String
+  matricula   Matricula @relation(fields: [matriculaId], references: [id], onDelete: Cascade)
+  matriculaId String
+
+  @@unique([provaId, matriculaId])
+  @@map("notas")
+}
+
+// Registro de emissão de certificado — autenticidade e rastreio (número, data,
+// quem emitiu). Um por matrícula.
+model Certificado {
+  id          String    @id @default(cuid())
+  numero      String    @unique
+  emitidoPor  String
+  emitidoEm   DateTime  @default(now())
+  matricula   Matricula @relation(fields: [matriculaId], references: [id], onDelete: Cascade)
+  matriculaId String    @unique
+
+  @@map("certificados")
+}
+
+model Presenca {
+  id          String    @id @default(cuid())
+  presente    Boolean   @default(true)
+  matricula   Matricula @relation(fields: [matriculaId], references: [id], onDelete: Cascade)
+  matriculaId String
+  aula        Aula      @relation(fields: [aulaId], references: [id], onDelete: Cascade)
+  aulaId      String
+
+  @@unique([matriculaId, aulaId])
+  @@map("presencas")
+}
