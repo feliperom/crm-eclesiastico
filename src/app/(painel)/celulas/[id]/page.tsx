@@ -6,6 +6,7 @@ import { AutoSubmitSelect } from "@/components/auto-submit-select";
 import { ConfirmButton } from "@/components/confirm-button";
 import { adicionarMembroCelula, definirLider, removerMembroCelula } from "../actions";
 import { CARGO } from "@/lib/constants";
+import { garantirLideranca } from "@/lib/auth/access";
 
 const CLASSE_SELECT_LINHA =
   "rounded-lg border border-line bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-primary focus:ring-2 focus:ring-primary/15";
@@ -21,6 +22,14 @@ export default async function CelulaDetalhePage({ params }: { params: Promise<{ 
   });
 
   if (!celula) notFound();
+
+  const membroLogado = await garantirLideranca();
+  const isAdmin = membroLogado.cargo === CARGO.ADMIN;
+
+  // Se for LIDER_CELULA, só pode ver a sua própria célula
+  if (!isAdmin && celula.liderId !== membroLogado.id) {
+    notFound();
+  }
 
   // Todos os membros que NÃO estão nesta célula, para poderem ser adicionados
   const membrosDisponiveis = await prisma.membro.findMany({
@@ -55,22 +64,24 @@ export default async function CelulaDetalhePage({ params }: { params: Promise<{ 
             <p className="font-medium text-ink">Líder Atual</p>
             <p className="text-sm text-muted">{celula.lider ? celula.lider.nome : "Nenhum líder definido"}</p>
           </div>
-          <form action={definirLider} className="shrink-0">
-            <input type="hidden" name="id" value={celula.id} />
-            <AutoSubmitSelect
-              name="liderId"
-              defaultValue={celula.liderId ?? ""}
-              aria-label="Líder da célula"
-              className={CLASSE_SELECT_LINHA}
-            >
-              <option value="">Sem líder</option>
-              {possiveisLideres.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.nome || l.email}
-                </option>
-              ))}
-            </AutoSubmitSelect>
-          </form>
+          {isAdmin && (
+            <form action={definirLider} className="shrink-0">
+              <input type="hidden" name="id" value={celula.id} />
+              <AutoSubmitSelect
+                name="liderId"
+                defaultValue={celula.liderId ?? ""}
+                aria-label="Líder da célula"
+                className={CLASSE_SELECT_LINHA}
+              >
+                <option value="">Sem líder</option>
+                {possiveisLideres.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.nome || l.email}
+                  </option>
+                ))}
+              </AutoSubmitSelect>
+            </form>
+          )}
         </Card>
       </section>
 

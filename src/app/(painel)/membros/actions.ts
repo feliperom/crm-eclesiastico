@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { garantirAdmin } from "@/lib/auth/access";
+import { garantirAdmin, garantirLideranca, verificarPertenceCelula } from "@/lib/auth/access";
 
 const membroSchema = z.object({
   nome: z.string().trim().min(1, "Informe o nome"),
@@ -45,9 +45,12 @@ export async function atualizarMembro(formData: FormData) {
 }
 
 export async function registrarEtapaTrilho(formData: FormData) {
-  await garantirAdmin(); // no futuro pode ser LIDER_CELULA também
+  await garantirLideranca();
   const membroId = z.string().min(1).parse(formData.get("membroId"));
   const etapa = z.string().min(1).parse(formData.get("etapa"));
+
+  const temPermissao = await verificarPertenceCelula(membroId);
+  if (!temPermissao) throw new Error("Sem permissão para alterar este membro");
   
   await prisma.historicoTrilho.upsert({
     where: {
@@ -67,9 +70,12 @@ export async function registrarEtapaTrilho(formData: FormData) {
 }
 
 export async function removerEtapaTrilho(formData: FormData) {
-  await garantirAdmin();
+  await garantirLideranca();
   const membroId = z.string().min(1).parse(formData.get("membroId"));
   const etapa = z.string().min(1).parse(formData.get("etapa"));
+
+  const temPermissao = await verificarPertenceCelula(membroId);
+  if (!temPermissao) throw new Error("Sem permissão para alterar este membro");
 
   await prisma.historicoTrilho.delete({
     where: {

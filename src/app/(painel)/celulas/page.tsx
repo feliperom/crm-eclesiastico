@@ -3,9 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader } from "@/components/ui";
 import { ConfirmButton } from "@/components/confirm-button";
 import { criarCelula, excluirCelula } from "./actions";
+import { garantirLideranca } from "@/lib/auth/access";
+import { CARGO } from "@/lib/constants";
 
 export default async function CelulasPage() {
+  const membroLogado = await garantirLideranca();
+  const isAdmin = membroLogado.cargo === CARGO.ADMIN;
+
   const celulas = await prisma.celula.findMany({
+    where: isAdmin ? {} : { liderId: membroLogado.id || "" },
     include: {
       lider: true,
       _count: { select: { membros: true } },
@@ -17,26 +23,28 @@ export default async function CelulasPage() {
     <div>
       <PageHeader titulo="Células" descricao="Gestão de grupos e células da igreja" />
 
-      <details className="mb-5 rounded-2xl border border-line bg-surface p-4 shadow-sm">
-        <summary className="cursor-pointer text-sm font-semibold text-primary">+ Nova Célula</summary>
-        <form action={criarCelula} className="mt-4 space-y-3">
-          <Field label="Nome da Célula">
-            <Input name="nome" placeholder="Ex: Célula Betel" required />
-          </Field>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Field label="Bairro (opcional)">
-              <Input name="bairro" placeholder="Ex: Centro" />
+      {isAdmin && (
+        <details className="mb-5 rounded-2xl border border-line bg-surface p-4 shadow-sm">
+          <summary className="cursor-pointer text-sm font-semibold text-primary">+ Nova Célula</summary>
+          <form action={criarCelula} className="mt-4 space-y-3">
+            <Field label="Nome da Célula">
+              <Input name="nome" placeholder="Ex: Célula Betel" required />
             </Field>
-            <Field label="Dia da semana (opcional)">
-              <Input name="dia" placeholder="Ex: Terça-feira" />
-            </Field>
-            <Field label="Horário (opcional)">
-              <Input name="horario" placeholder="Ex: 20:00" />
-            </Field>
-          </div>
-          <Button type="submit">Criar Célula</Button>
-        </form>
-      </details>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Field label="Bairro (opcional)">
+                <Input name="bairro" placeholder="Ex: Centro" />
+              </Field>
+              <Field label="Dia da semana (opcional)">
+                <Input name="dia" placeholder="Ex: Terça-feira" />
+              </Field>
+              <Field label="Horário (opcional)">
+                <Input name="horario" placeholder="Ex: 20:00" />
+              </Field>
+            </div>
+            <Button type="submit">Criar Célula</Button>
+          </form>
+        </details>
+      )}
 
       <h2 className="mb-2 text-sm font-semibold text-ink">Células Ativas</h2>
       {celulas.length === 0 ? (
@@ -52,17 +60,19 @@ export default async function CelulasPage() {
                       {celula.nome}
                     </h3>
                   </Link>
-                  <form action={excluirCelula}>
-                    <input type="hidden" name="id" value={celula.id} />
-                    <ConfirmButton
-                      titulo="Excluir célula?"
-                      descricao="Isso removerá a célula, mas não os membros."
-                      triggerLabel="Excluir"
-                      triggerClassName="text-sm text-muted/70 hover:text-danger"
-                    >
-                      ✕
-                    </ConfirmButton>
-                  </form>
+                  {isAdmin && (
+                    <form action={excluirCelula}>
+                      <input type="hidden" name="id" value={celula.id} />
+                      <ConfirmButton
+                        titulo="Excluir célula?"
+                        descricao="Isso removerá a célula, mas não os membros."
+                        triggerLabel="Excluir"
+                        triggerClassName="text-sm text-muted/70 hover:text-danger"
+                      >
+                        ✕
+                      </ConfirmButton>
+                    </form>
+                  )}
                 </div>
                 
                 <div className="mb-4 space-y-1 text-sm text-muted">

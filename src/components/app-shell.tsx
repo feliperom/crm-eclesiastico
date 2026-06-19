@@ -154,7 +154,9 @@ function RodapeUsuario({ nome, cargo }: { nome: string; cargo: Cargo }) {
 export function AppShell({ children, nomeUsuario, cargo }: { children: ReactNode; nomeUsuario: string; cargo: Cargo }) {
   const pathname = usePathname();
   const [drawerAberto, setDrawerAberto] = useState(false);
-  const itens = cargo === CARGO.ADMIN ? [...ITENS, ITEM_USUARIOS] : ITENS;
+  const itens = cargo === CARGO.ADMIN 
+    ? [...ITENS, ITEM_USUARIOS] 
+    : ITENS.filter((i) => i.href === "/celulas");
 
   useEffect(() => {
     setDrawerAberto(false);

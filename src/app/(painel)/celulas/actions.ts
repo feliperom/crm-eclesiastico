@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { garantirAdmin } from "@/lib/auth/access";
+import { garantirAdmin, garantirLideranca, verificarDonoCelula } from "@/lib/auth/access";
 
 const criarCelulaSchema = z.object({
   nome: z.string().trim().min(3, "Nome muito curto"),
@@ -46,9 +46,12 @@ export async function definirLider(formData: FormData) {
 }
 
 export async function adicionarMembroCelula(formData: FormData) {
-  await garantirAdmin();
+  await garantirLideranca();
   const id = z.string().min(1).parse(formData.get("id"));
   const membroId = z.string().min(1).parse(formData.get("membroId"));
+
+  const isDono = await verificarDonoCelula(id);
+  if (!isDono) throw new Error("Sem permissão para alterar esta célula");
 
   await prisma.membro.update({
     where: { id: membroId },
@@ -58,9 +61,12 @@ export async function adicionarMembroCelula(formData: FormData) {
 }
 
 export async function removerMembroCelula(formData: FormData) {
-  await garantirAdmin();
+  await garantirLideranca();
   const id = z.string().min(1).parse(formData.get("id")); // id da celula
   const membroId = z.string().min(1).parse(formData.get("membroId"));
+
+  const isDono = await verificarDonoCelula(id);
+  if (!isDono) throw new Error("Sem permissão para alterar esta célula");
 
   await prisma.membro.update({
     where: { id: membroId },

@@ -22,7 +22,7 @@ export async function emailTemAcesso(email: string): Promise<boolean> {
   return membro !== null;
 }
 
-export type Membro = { nome: string; email: string; cargo: Cargo };
+export type Membro = { id: string | null; nome: string; email: string; cargo: Cargo };
 
 // Retorna o membro logado (com cargo) ou null se não tiver acesso ao painel.
 export async function obterMembro(): Promise<Membro | null> {
@@ -34,12 +34,12 @@ export async function obterMembro(): Promise<Membro | null> {
   const nome = usuario.name || usuario.email;
 
   if (emailsBootstrap().includes(email)) {
-    return { nome, email, cargo: CARGO.ADMIN };
+    return { id: null, nome, email, cargo: CARGO.ADMIN };
   }
 
   const membro = await prisma.membro.findUnique({ where: { email } });
   if (!membro) return null;
-  return { nome: membro.nome || nome, email, cargo: membro.cargo as Cargo };
+  return { id: membro.id, nome: membro.nome || nome, email, cargo: membro.cargo as Cargo };
 }
 
 export async function souAdmin(): Promise<boolean> {
@@ -51,4 +51,34 @@ export async function souAdmin(): Promise<boolean> {
 // (Diretor é somente leitura) mandando para uma página de aviso.
 export async function garantirAdmin(): Promise<void> {
   if (!(await souAdmin())) redirect("/sem-permissao");
+}
+
+export async function garantirLideranca(): Promise<Membro> {
+  const membro = await obterMembro();
+  if (!membro) redirect("/sem-permissao");
+  if (membro.cargo === CARGO.ADMIN || membro.cargo === CARGO.LIDER_CELULA) {
+    return membro;
+  }
+  redirect("/sem-permissao");
+}
+
+export async function verificarDonoCelula(celulaId: string): Promise<boolean> {
+  const membro = await obterMembro();
+  if (!membro) return false;
+  if (membro.cargo === CARGO.ADMIN) return true;
+
+  const celula = await prisma.celula.findUnique({ where: { id: celulaId } });
+  return celula?.liderId === membro.id;
+}
+
+export async function verificarPertenceCelula(membroAlvoId: string): Promise<boolean> {
+  const membro = await obterMembro();
+  if (!membro) return false;
+  if (membro.cargo === CARGO.ADMIN) return true;
+
+  const membroAlvo = await prisma.membro.findUnique({ where: { id: membroAlvoId } });
+  if (!membroAlvo?.celulaId) return false;
+
+  const celula = await prisma.celula.findUnique({ where: { id: membroAlvo.celulaId } });
+  return celula?.liderId === membro.id;
 }

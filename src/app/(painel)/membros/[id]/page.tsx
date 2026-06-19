@@ -8,6 +8,8 @@ import { APOSTILA_STATUS_LABEL, ETAPAS_TRILHO_ORDEM, ETAPA_TRILHO_LABEL, type Ap
 import { Badge, Card, EmptyState, Field, Input, PageHeader, SituacaoBadge } from "@/components/ui";
 import { CopiarLink } from "@/components/copiar-link";
 import { atualizarMembro, registrarEtapaTrilho, removerEtapaTrilho } from "../actions";
+import { garantirLideranca, verificarPertenceCelula } from "@/lib/auth/access";
+import { CARGO } from "@/lib/constants";
 
 export default async function MembroDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,6 +28,14 @@ export default async function MembroDetalhePage({ params }: { params: Promise<{ 
     },
   });
   if (!membro) notFound();
+
+  const membroLogado = await garantirLideranca();
+  const isAdmin = membroLogado.cargo === CARGO.ADMIN;
+
+  if (!isAdmin) {
+    const pertence = await verificarPertenceCelula(membro.id);
+    if (!pertence) notFound();
+  }
 
   const baseUrl = await obterBaseUrl();
   const linkPortal = `${baseUrl}/membro/${membro.token}`;
@@ -157,26 +167,28 @@ export default async function MembroDetalhePage({ params }: { params: Promise<{ 
       )}
 
       {/* Editar dados */}
-      <details className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
-        <summary className="cursor-pointer text-sm font-semibold text-primary">Editar dados</summary>
-        <form action={atualizarMembro} className="mt-4 space-y-3">
-          <input type="hidden" name="id" value={membro.id} />
-          <Field label="Nome">
-            <Input name="nome" defaultValue={membro.nome} required />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Telefone (WhatsApp)">
-              <Input name="telefone" defaultValue={membro.telefone ?? ""} inputMode="tel" />
+      {isAdmin && (
+        <details className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+          <summary className="cursor-pointer text-sm font-semibold text-primary">Editar dados</summary>
+          <form action={atualizarMembro} className="mt-4 space-y-3">
+            <input type="hidden" name="id" value={membro.id} />
+            <Field label="Nome">
+              <Input name="nome" defaultValue={membro.nome} required />
             </Field>
-            <Field label="E-mail">
-              <Input name="email" type="email" defaultValue={membro.email ?? ""} />
-            </Field>
-          </div>
-          <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark">
-            Salvar
-          </button>
-        </form>
-      </details>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Telefone (WhatsApp)">
+                <Input name="telefone" defaultValue={membro.telefone ?? ""} inputMode="tel" />
+              </Field>
+              <Field label="E-mail">
+                <Input name="email" type="email" defaultValue={membro.email ?? ""} />
+              </Field>
+            </div>
+            <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark">
+              Salvar
+            </button>
+          </form>
+        </details>
+      )}
     </div>
   );
 }

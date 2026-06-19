@@ -29,11 +29,6 @@ export default async function PainelLayout({ children }: { children: React.React
 
   return (
     <AppShell nomeUsuario={membro.nome} cargo={membro.cargo}>
-      {membro.cargo === CARGO.LIDER_CELULA ? (
-        <div className="mb-5 flex items-center gap-2 rounded-xl border border-line bg-surface-2 px-4 py-2.5 text-sm text-muted">
-          <span aria-hidden>👁️</span> Modo leitura — as edições são feitas pela coordenação.
-        </div>
-      ) : null}
       {children}
     </AppShell>
   );
