@@ -43,3 +43,39 @@ export async function atualizarMembro(formData: FormData) {
   revalidatePath(`/membros/${id}`);
   revalidatePath("/membros");
 }
+
+export async function registrarEtapaTrilho(formData: FormData) {
+  await garantirAdmin(); // no futuro pode ser LIDER_CELULA também
+  const membroId = z.string().min(1).parse(formData.get("membroId"));
+  const etapa = z.string().min(1).parse(formData.get("etapa"));
+  
+  await prisma.historicoTrilho.upsert({
+    where: {
+      membroId_etapa: { membroId, etapa }
+    },
+    update: {
+      dataConclusao: new Date()
+    },
+    create: {
+      membroId,
+      etapa,
+      dataConclusao: new Date()
+    }
+  });
+
+  revalidatePath(`/membros/${membroId}`);
+}
+
+export async function removerEtapaTrilho(formData: FormData) {
+  await garantirAdmin();
+  const membroId = z.string().min(1).parse(formData.get("membroId"));
+  const etapa = z.string().min(1).parse(formData.get("etapa"));
+
+  await prisma.historicoTrilho.delete({
+    where: {
+      membroId_etapa: { membroId, etapa }
+    }
+  });
+
+  revalidatePath(`/membros/${membroId}`);
+}

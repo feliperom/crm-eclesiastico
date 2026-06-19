@@ -3,17 +3,18 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { calcularSituacao } from "@/lib/situacao";
 import { obterBaseUrl } from "@/lib/base-url";
-import { linkWhatsApp } from "@/lib/format";
-import { APOSTILA_STATUS_LABEL, type ApostilaStatus } from "@/lib/constants";
+import { linkWhatsApp, formatarData } from "@/lib/format";
+import { APOSTILA_STATUS_LABEL, ETAPAS_TRILHO_ORDEM, ETAPA_TRILHO_LABEL, type ApostilaStatus } from "@/lib/constants";
 import { Badge, Card, EmptyState, Field, Input, PageHeader, SituacaoBadge } from "@/components/ui";
 import { CopiarLink } from "@/components/copiar-link";
-import { atualizarMembro } from "../actions";
+import { atualizarMembro, registrarEtapaTrilho, removerEtapaTrilho } from "../actions";
 
 export default async function MembroDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const membro = await prisma.membro.findUnique({
     where: { id },
     include: {
+      historicoTrilho: true,
       matriculas: {
         include: {
           turma: { include: { modulo: { include: { nivel: true } } } },
@@ -64,8 +65,49 @@ export default async function MembroDetalhePage({ params }: { params: Promise<{ 
         ) : null}
       </Card>
 
-      {/* Histórico */}
-      <h2 className="mb-2 text-sm font-semibold text-ink">Histórico</h2>
+      {/* Jornada (Trilho) */}
+      <h2 className="mt-8 mb-3 text-sm font-semibold text-ink">Jornada (Trilho)</h2>
+      <div className="mb-8 space-y-3">
+        {ETAPAS_TRILHO_ORDEM.map((etapa) => {
+          const historico = membro.historicoTrilho.find((h) => h.etapa === etapa);
+          const concluido = !!historico;
+          return (
+            <Card key={etapa} className={`flex items-center justify-between ${concluido ? "border-primary/30 bg-primary/5" : ""}`}>
+              <div className="flex items-center gap-3">
+                <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${concluido ? "bg-primary text-white" : "bg-surface-2 text-muted"}`}>
+                  {concluido ? "✓" : ""}
+                </div>
+                <div>
+                  <p className={`font-medium ${concluido ? "text-ink" : "text-muted"}`}>{ETAPA_TRILHO_LABEL[etapa]}</p>
+                  {concluido && (
+                    <p className="text-xs text-muted">Concluído em {formatarData(historico.dataConclusao)}</p>
+                  )}
+                </div>
+              </div>
+              {concluido ? (
+                <form action={removerEtapaTrilho}>
+                  <input type="hidden" name="membroId" value={membro.id} />
+                  <input type="hidden" name="etapa" value={etapa} />
+                  <button type="submit" className="text-xs font-semibold text-muted hover:text-danger hover:underline">
+                    Desfazer
+                  </button>
+                </form>
+              ) : (
+                <form action={registrarEtapaTrilho}>
+                  <input type="hidden" name="membroId" value={membro.id} />
+                  <input type="hidden" name="etapa" value={etapa} />
+                  <button type="submit" className="rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-line">
+                    Registrar
+                  </button>
+                </form>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Histórico Escolar */}
+      <h2 className="mb-3 text-sm font-semibold text-ink">Histórico da Escola Ministerial</h2>
       {membro.matriculas.length === 0 ? (
         <EmptyState titulo="Sem matrículas" descricao="Matricule o membro em uma turma." />
       ) : (

@@ -40,6 +40,26 @@ export const ETAPA_TRILHO = {
 
 export type EtapaTrilho = (typeof ETAPA_TRILHO)[keyof typeof ETAPA_TRILHO];
 
+export const ETAPA_TRILHO_LABEL: Record<EtapaTrilho, string> = {
+  NOVO_MEMBRO: "Novo Membro",
+  CONSOLIDACAO: "Consolidação",
+  PRE_ENCONTRO: "Pré Encontro",
+  ENCONTRO: "Encontro com Deus",
+  POS_ENCONTRO: "Pós-encontro",
+  ESCOLA_NIVEL_1: "Escola Ministerial - Nível 1",
+  ESCOLA_NIVEL_2: "Escola Ministerial - Nível 2",
+};
+
+export const ETAPAS_TRILHO_ORDEM: EtapaTrilho[] = [
+  ETAPA_TRILHO.NOVO_MEMBRO,
+  ETAPA_TRILHO.CONSOLIDACAO,
+  ETAPA_TRILHO.PRE_ENCONTRO,
+  ETAPA_TRILHO.ENCONTRO,
+  ETAPA_TRILHO.POS_ENCONTRO,
+  ETAPA_TRILHO.ESCOLA_NIVEL_1,
+  ETAPA_TRILHO.ESCOLA_NIVEL_2,
+];
+
 export const MATRICULA_STATUS = {
   CURSANDO: "CURSANDO",
   TRANCADO: "TRANCADO",
