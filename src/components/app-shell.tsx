@@ -23,6 +23,12 @@ const ICON = {
   curriculo: (
     <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5ZM9 7h6M9 11h6" />
   ),
+  celulas: (
+    <g><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></g>
+  ),
+  redes: (
+    <g><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /><line x1="15.41" x2="8.59" y1="6.51" y2="10.49" /></g>
+  ),
   usuarios: (
     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" />
   ),
@@ -50,6 +56,8 @@ const ITENS: Item[] = [
   { href: "/", label: "Início", icone: <Glyph>{ICON.inicio}</Glyph> },
   { href: "/turmas", label: "Turmas", icone: <Glyph>{ICON.turmas}</Glyph> },
   { href: "/membros", label: "Membros", icone: <Glyph>{ICON.membros}</Glyph> },
+  { href: "/celulas", label: "Células", icone: <Glyph>{ICON.celulas}</Glyph> },
+  { href: "/redes", label: "Redes", icone: <Glyph>{ICON.redes}</Glyph> },
   { href: "/professores", label: "Professores", icone: <Glyph>{ICON.professores}</Glyph> },
   { href: "/curriculo", label: "Currículo", icone: <Glyph>{ICON.curriculo}</Glyph> },
 ];
