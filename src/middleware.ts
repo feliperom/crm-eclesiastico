@@ -1,11 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { auth } from "@/lib/auth/server";
 
-// O middleware do Neon Auth valida/atualiza a sessão nas navegações GET e
-// redireciona não autenticados para /login. Em requisições não-GET (Server
-// Actions) ele interfere no corpo e quebra a ação — então, para essas, apenas
-// exigimos a presença do cookie de sessão. A autorização efetiva (allowlist)
-// continua garantida no layout do painel.
 const protegerNavegacao = auth.middleware({ loginUrl: "/login" });
 
 function temCookieDeSessao(request: NextRequest): boolean {
@@ -13,14 +8,73 @@ function temCookieDeSessao(request: NextRequest): boolean {
 }
 
 export default async function proxy(request: NextRequest) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  
+  // CSP Rigorosa
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${
+      process.env.NODE_ENV === "production" ? "" : "'unsafe-eval'"
+    };
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' blob: data:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    block-all-mixed-content;
+    upgrade-insecure-requests;
+  `;
+  const contentSecurityPolicyHeaderValue = cspHeader.replace(/\s{2,}/g, " ").trim();
+
+  // Clonamos os headers para enviar ao Next.js (necessário para ele embutir o nonce nas tags <script>)
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
+
+  let response: NextResponse | Response;
+
+  const pathname = request.nextUrl.pathname;
+  const rotasPublicas = ["/login", "/registrar", "/sair"];
+  const isPublica = rotasPublicas.some(r => pathname === r || pathname.startsWith(`${r}/`)) || pathname.startsWith("/membro");
+
   if (request.method !== "GET") {
-    if (temCookieDeSessao(request)) return NextResponse.next();
-    return new NextResponse("Não autorizado", { status: 401 });
+    if (temCookieDeSessao(request)) {
+      response = NextResponse.next({ request: { headers: requestHeaders } });
+    } else {
+      response = new NextResponse("Não autorizado", { status: 401 });
+    }
+  } else {
+    if (isPublica) {
+      response = NextResponse.next({ request: { headers: requestHeaders } });
+    } else {
+      // Passamos um novo NextRequest com os headers modificados para o middleware do Neon Auth
+      const newReq = new NextRequest(request, { headers: requestHeaders });
+      response = await protegerNavegacao(newReq);
+      
+      // O Next.js requer que, caso o middleware retorne um NextResponse originado internamente
+      // e quisermos manter os headers injetados, nós devemos repassar. 
+      // Mas o \`protegerNavegacao\` pode retornar redirect.
+      // Apenas injetar o header na resposta já enviará o CSP ao navegador.
+    }
   }
-  return protegerNavegacao(request);
+
+  // Define o CSP também na resposta final para o navegador
+  response.headers.set("Content-Security-Policy", contentSecurityPolicyHeaderValue);
+  
+  return response;
 }
 
 export const config = {
-  // Rotas públicas ficam de fora: login, cadastro, logout, portal do membro e a API de auth.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth|login|registrar|sair|membro).*)"],
+  // Apenas excluímos arquivos estáticos e imagens, aplicando o CSP em tudo que é renderizado
+  matcher: [
+    {
+      source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+      ],
+    },
+  ],
 };
