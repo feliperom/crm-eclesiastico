@@ -39,25 +39,20 @@ export default async function proxy(request: NextRequest) {
   const rotasPublicas = ["/login", "/registrar", "/sair"];
   const isPublica = rotasPublicas.some(r => pathname === r || pathname.startsWith(`${r}/`)) || pathname.startsWith("/membro");
 
-  if (request.method !== "GET") {
+  if (isPublica) {
+    // Rotas públicas recebem passe livre em qualquer método HTTP (ex: POST no form de login)
+    response = NextResponse.next({ request: { headers: requestHeaders } });
+  } else if (request.method !== "GET") {
+    // Ações de servidor (POST/PUT/DELETE) em rotas privadas exigem o cookie
     if (temCookieDeSessao(request)) {
       response = NextResponse.next({ request: { headers: requestHeaders } });
     } else {
       response = new NextResponse("Não autorizado", { status: 401 });
     }
   } else {
-    if (isPublica) {
-      response = NextResponse.next({ request: { headers: requestHeaders } });
-    } else {
-      // Passamos um novo NextRequest com os headers modificados para o middleware do Neon Auth
-      const newReq = new NextRequest(request, { headers: requestHeaders });
-      response = await protegerNavegacao(newReq);
-      
-      // O Next.js requer que, caso o middleware retorne um NextResponse originado internamente
-      // e quisermos manter os headers injetados, nós devemos repassar. 
-      // Mas o \`protegerNavegacao\` pode retornar redirect.
-      // Apenas injetar o header na resposta já enviará o CSP ao navegador.
-    }
+    // Navegação GET em rotas privadas: deixamos o Neon Auth validar e redirecionar se precisar
+    const newReq = new NextRequest(request, { headers: requestHeaders });
+    response = await protegerNavegacao(newReq);
   }
 
   // Define o CSP também na resposta final para o navegador
