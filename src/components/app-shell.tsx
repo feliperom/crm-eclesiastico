@@ -5,24 +5,20 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { CARGO, CARGO_LABEL, type Cargo } from "@/lib/constants";
 
-type Item = { href: string; label: string; icone: ReactNode };
+type SubItem = { href: string; label: string };
+type Item = { href?: string; label: string; icone: ReactNode; subitens?: SubItem[] };
 
 const ICON = {
   inicio: (
     <path d="M3 10.5 12 3l9 7.5M5 9.5V21h5v-6h4v6h5V9.5" />
   ),
-  turmas: (
-    <path d="M17 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9.5 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM22 20v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" />
-  ),
-  membros: (
-    <path d="M22 10 12 5 2 10l10 5 10-5ZM6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5M22 10v5" />
-  ),
-  professores: (
+  escola: (
     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
   ),
-  curriculo: (
-    <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5ZM9 7h6M9 11h6" />
+  membros: (
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" />
   ),
+
   celulas: (
     <g><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></g>
   ),
@@ -54,12 +50,18 @@ function Glyph({ children }: { children: ReactNode }) {
 
 const ITENS: Item[] = [
   { href: "/", label: "Início", icone: <Glyph>{ICON.inicio}</Glyph> },
-  { href: "/turmas", label: "Turmas", icone: <Glyph>{ICON.turmas}</Glyph> },
   { href: "/membros", label: "Membros", icone: <Glyph>{ICON.membros}</Glyph> },
   { href: "/celulas", label: "Células", icone: <Glyph>{ICON.celulas}</Glyph> },
   { href: "/redes", label: "Redes", icone: <Glyph>{ICON.redes}</Glyph> },
-  { href: "/professores", label: "Professores", icone: <Glyph>{ICON.professores}</Glyph> },
-  { href: "/curriculo", label: "Currículo", icone: <Glyph>{ICON.curriculo}</Glyph> },
+  {
+    label: "Escola Ministerial",
+    icone: <Glyph>{ICON.escola}</Glyph>,
+    subitens: [
+      { href: "/turmas", label: "Turmas" },
+      { href: "/professores", label: "Professores" },
+      { href: "/curriculo", label: "Currículo" },
+    ],
+  },
 ];
 
 const ITEM_USUARIOS: Item = { href: "/usuarios", label: "Usuários", icone: <Glyph>{ICON.usuarios}</Glyph> };
@@ -78,9 +80,9 @@ function Marca() {
         </svg>
       </span>
       <span className="font-display text-lg leading-none text-white">
-        Escola
+        Gestão
         <span className="block text-[11px] font-sans font-medium uppercase tracking-[0.2em] text-sidebar-muted">
-          Ministerial
+          Eclesiástica
         </span>
       </span>
     </Link>
@@ -91,11 +93,47 @@ function NavLista({ itens, pathname, onNavegar }: { itens: Item[]; pathname: str
   return (
     <nav className="flex flex-col gap-1">
       {itens.map((item) => {
-        const selecionado = ativo(pathname, item.href);
+        if (item.subitens) {
+          const algumAtivo = item.subitens.some((sub) => ativo(pathname, sub.href));
+          return (
+            <details key={item.label} className="group" open={algumAtivo}>
+              <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-ink transition-colors hover:bg-sidebar-2/60 hover:text-white [&::-webkit-details-marker]:hidden">
+                <span className="text-sidebar-muted group-hover:text-sidebar-ink">
+                  {item.icone}
+                </span>
+                {item.label}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto opacity-50 transition-transform group-open:rotate-180 group-hover:opacity-100">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </summary>
+              <div className="mt-1 flex flex-col gap-1 pl-10 pr-3">
+                {item.subitens.map((sub) => {
+                  const subSelecionado = ativo(pathname, sub.href);
+                  return (
+                    <Link
+                      key={sub.href}
+                      href={sub.href}
+                      onClick={onNavegar}
+                      className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
+                        subSelecionado
+                          ? "bg-accent/10 font-semibold text-accent"
+                          : "text-sidebar-muted hover:bg-sidebar-2/40 hover:text-white"
+                      }`}
+                    >
+                      {sub.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </details>
+          );
+        }
+
+        const selecionado = item.href ? ativo(pathname, item.href) : false;
         return (
           <Link
-            key={item.href}
-            href={item.href}
+            key={item.href || item.label}
+            href={item.href || "#"}
             onClick={onNavegar}
             className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
               selecionado
@@ -188,7 +226,7 @@ export function AppShell({ children, nomeUsuario, cargo }: { children: ReactNode
             <path d="M3 6h18M3 12h18M3 18h18" />
           </svg>
         </button>
-        <span className="font-display text-base text-ink">Escola Ministerial</span>
+        <span className="font-display text-base text-ink">Gestão Eclesiástica</span>
         <span className="h-10 w-10" />
       </header>
 

@@ -12,7 +12,7 @@ export default function RegistrarPage() {
         </span>
 
         <h1 className="mt-6 font-display text-3xl text-ink">Criar conta</h1>
-        <p className="mb-8 mt-1 text-sm text-muted">Primeiro acesso da coordenação à Escola Ministerial.</p>
+        <p className="mb-8 mt-1 text-sm text-muted">Primeiro acesso da coordenação à Gestão Eclesiástica.</p>
 
         <RegistrarForm />
 

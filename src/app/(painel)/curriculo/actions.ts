@@ -13,6 +13,14 @@ export async function criarNivel(formData: FormData) {
   revalidatePath("/curriculo");
 }
 
+export async function editarNivel(formData: FormData) {
+  await garantirAdmin();
+  const id = z.string().min(1).parse(formData.get("id"));
+  const nome = z.string().trim().min(1, "Informe o nome").parse(formData.get("nome"));
+  await prisma.nivel.update({ where: { id }, data: { nome } });
+  revalidatePath("/curriculo");
+}
+
 const moduloSchema = z.object({
   nivelId: z.string().min(1),
   nome: z.string().trim().min(1, "Informe o nome do módulo"),
@@ -28,6 +36,15 @@ export async function criarModulo(formData: FormData) {
   });
   const ordem = (await prisma.modulo.count({ where: { nivelId: dados.nivelId } })) + 1;
   await prisma.modulo.create({ data: { ...dados, ordem } });
+  revalidatePath("/curriculo");
+}
+
+export async function editarModulo(formData: FormData) {
+  await garantirAdmin();
+  const id = z.string().min(1).parse(formData.get("id"));
+  const nome = z.string().trim().min(1, "Informe o nome do módulo").parse(formData.get("nome"));
+  const maxFaltas = z.coerce.number().int().min(0).max(50).parse(formData.get("maxFaltas"));
+  await prisma.modulo.update({ where: { id }, data: { nome, maxFaltas } });
   revalidatePath("/curriculo");
 }
 
@@ -52,6 +69,14 @@ export async function criarMateria(formData: FormData) {
     });
   }
 
+  revalidatePath("/curriculo");
+}
+
+export async function editarMateria(formData: FormData) {
+  await garantirAdmin();
+  const id = z.string().min(1).parse(formData.get("id"));
+  const nome = z.string().trim().min(1, "Informe o nome").parse(formData.get("nome"));
+  await prisma.materia.update({ where: { id }, data: { nome } });
   revalidatePath("/curriculo");
 }
 
@@ -109,5 +134,27 @@ export async function excluirProva(formData: FormData) {
   await garantirAdmin();
   const id = z.string().min(1).parse(formData.get("id"));
   await prisma.prova.delete({ where: { id } });
+  revalidatePath("/curriculo");
+}
+
+export async function editarProva(formData: FormData) {
+  await garantirAdmin();
+  const id = z.string().min(1).parse(formData.get("id"));
+  const dados = provaSchema.omit({ moduloId: true }).parse({
+    nome: formData.get("nome"),
+    notaMaxima: formData.get("notaMaxima"),
+  });
+  const materiaIds = formData.getAll("materiaIds").map(String).filter(Boolean);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.prova.update({ where: { id }, data: { nome: dados.nome, notaMaxima: dados.notaMaxima } });
+    await tx.provaMateria.deleteMany({ where: { provaId: id } });
+    if (materiaIds.length > 0) {
+      await tx.provaMateria.createMany({
+        data: materiaIds.map(materiaId => ({ provaId: id, materiaId }))
+      });
+    }
+  });
+
   revalidatePath("/curriculo");
 }

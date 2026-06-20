@@ -15,8 +15,8 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Escola Ministerial",
-  description: "Gestão de turmas, membros, presença e apostilas da Escola Ministerial",
+  title: "Gestão Eclesiástica",
+  description: "Gestão Eclesiástica e Escola Ministerial",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

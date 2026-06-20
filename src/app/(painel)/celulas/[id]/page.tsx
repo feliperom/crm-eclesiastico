@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Badge, Button, Card, EmptyState, PageHeader, Select } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, PageHeader, Select, Field, Input } from "@/components/ui";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
 import { ConfirmButton } from "@/components/confirm-button";
-import { adicionarMembroCelula, definirLider, removerMembroCelula } from "../actions";
+import { adicionarMembroCelula, definirLider, editarDadosCelula, removerMembroCelula } from "../actions";
 import { CARGO } from "@/lib/constants";
 import { garantirLideranca } from "@/lib/auth/access";
 
@@ -139,6 +139,31 @@ export default async function CelulaDetalhePage({ params }: { params: Promise<{ 
           </div>
         )}
       </section>
+
+      {/* Editar dados */}
+      <details className="mt-8 rounded-2xl border border-line bg-surface p-4 shadow-sm">
+        <summary className="cursor-pointer text-sm font-semibold text-primary">Editar dados gerais da célula</summary>
+        <form action={editarDadosCelula} className="mt-4 space-y-3">
+          <input type="hidden" name="id" value={celula.id} />
+          <Field label="Nome da Célula">
+            <Input name="nome" defaultValue={celula.nome} required />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Dia do encontro">
+              <Input name="dia" defaultValue={celula.dia ?? ""} placeholder="Ex: Terça-feira" />
+            </Field>
+            <Field label="Horário">
+              <Input name="horario" defaultValue={celula.horario ?? ""} placeholder="Ex: 20:00" />
+            </Field>
+          </div>
+          <Field label="Bairro">
+            <Input name="bairro" defaultValue={celula.bairro ?? ""} placeholder="Ex: Centro" />
+          </Field>
+          <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark">
+            Salvar
+          </button>
+        </form>
+      </details>
     </div>
   );
 }

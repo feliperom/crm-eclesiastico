@@ -11,7 +11,7 @@ export default function LoginPage() {
               <path d="M12 3 3 7.5 12 12l9-4.5L12 3ZM7 10v5c0 1.4 2.2 2.8 5 2.8s5-1.4 5-2.8v-5" />
             </svg>
           </span>
-          <span className="font-display text-xl text-white">Escola Ministerial</span>
+          <span className="font-display text-xl text-white">Gestão Eclesiástica</span>
         </div>
 
         <blockquote className="max-w-md">

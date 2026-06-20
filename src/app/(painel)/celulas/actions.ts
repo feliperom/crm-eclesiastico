@@ -25,6 +25,34 @@ export async function criarCelula(formData: FormData) {
   revalidatePath("/celulas");
 }
 
+export async function editarDadosCelula(formData: FormData) {
+  await garantirLideranca();
+  const id = z.string().min(1).parse(formData.get("id"));
+  
+  const isDono = await verificarDonoCelula(id);
+  if (!isDono) throw new Error("Sem permissão para alterar esta célula");
+
+  const dados = criarCelulaSchema.parse({
+    nome: formData.get("nome"),
+    dia: formData.get("dia") || undefined,
+    horario: formData.get("horario") || undefined,
+    bairro: formData.get("bairro") || undefined,
+  });
+
+  await prisma.celula.update({
+    where: { id },
+    data: {
+      nome: dados.nome,
+      dia: dados.dia || null,
+      horario: dados.horario || null,
+      bairro: dados.bairro || null,
+    },
+  });
+
+  revalidatePath(`/celulas/${id}`);
+  revalidatePath("/celulas");
+}
+
 export async function excluirCelula(formData: FormData) {
   await garantirAdmin();
   const id = z.string().min(1).parse(formData.get("id"));

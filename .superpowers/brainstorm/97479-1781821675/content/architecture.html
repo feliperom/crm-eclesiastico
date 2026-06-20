@@ -1,0 +1,37 @@
+<div style="padding: 20px;">
+  <h2>Arquitetura Proposta: Igreja Modular</h2>
+  <p class="subtitle">Como o banco de dados atual será expandido para abraçar o Trilho e a Igreja.</p>
+
+  <div style="display: flex; gap: 20px; align-items: flex-start;">
+    
+    <div style="flex: 1; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;">
+      <h3>1. Unificação do Cadastro (Membros)</h3>
+      <p style="font-size: 14px; color: #475569;">
+        A atual tabela <code>Aluno</code> se fundirá com a tabela <code>Membro</code> (que hoje só guarda admins).<br><br>
+        O novo modelo central <strong>Membro</strong> terá campos para:<br>
+        - Dados Pessoais (Nome, Telefone, Email)<br>
+        - <strong>Cargo:</strong> ADMIN, LIDER_CELULA, ou COMUM.<br>
+        - Vínculo direto com uma <strong>Célula</strong> (opcional)<br>
+        - Vínculo direto com uma <strong>Rede</strong> (opcional)
+      </p>
+    </div>
+
+    <div style="flex: 1; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;">
+      <h3>2. Trilho de Crescimento (Histórico)</h3>
+      <p style="font-size: 14px; color: #475569;">
+        Criaremos a tabela <strong>HistoricoTrilho</strong>.<br><br>
+        Cada vez que o membro conclui um passo (ex: <i>Consolidação</i>), o sistema salva a etapa e a data.<br>
+        <br>As etapas da "Escola" continuarão conectadas via a estrutura atual (Matrícula -> Turma -> Módulo), mas a aprovação no "Nível 1" disparará a conclusão da etapa do Trilho automaticamente.
+      </p>
+    </div>
+
+  </div>
+
+  <div style="margin-top: 20px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;">
+    <h3>3. Gestão e Permissões (Dashboard)</h3>
+    <p style="font-size: 14px; color: #475569;">
+      - <strong>Coordenadores/Admin:</strong> Visualizam tudo (Escola, Redes, Células, Trilho).<br>
+      - <strong>Líderes de Célula:</strong> Ao fazerem login, o painel filtra a visão automaticamente. Eles só verão a lista de membros atrelados à sua célula, podendo editar seus dados e registrar o avanço no Trilho.
+    </p>
+  </div>
+</div>

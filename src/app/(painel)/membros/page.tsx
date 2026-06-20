@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
-import { Button, CardLink, EmptyState, Field, Input, PageHeader } from "@/components/ui";
+import { Button, CardLink, EmptyState, Field, Input, PageHeader, Select } from "@/components/ui";
+import { EnderecoFields } from "@/components/endereco-fields";
 import { criarMembro } from "./actions";
+import { ETAPA_TRILHO_LABEL, ETAPAS_TRILHO_ORDEM } from "@/lib/constants";
 
 export default async function MembrosPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
@@ -16,6 +18,9 @@ export default async function MembrosPage({ searchParams }: { searchParams: Prom
     orderBy: { nome: "asc" },
     include: { _count: { select: { matriculas: true } } },
   });
+
+  const celulas = await prisma.celula.findMany({ orderBy: { nome: "asc" } });
+  const redes = await prisma.rede.findMany({ orderBy: { nome: "asc" } });
 
   return (
     <div>
@@ -35,6 +40,40 @@ export default async function MembrosPage({ searchParams }: { searchParams: Prom
               <Input name="email" type="email" placeholder="opcional" />
             </Field>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Data de Nascimento">
+              <Input name="dataNascimento" type="date" />
+            </Field>
+            <Field label="Data de Batismo">
+              <Input name="dataBatismo" type="date" />
+            </Field>
+          </div>
+          <EnderecoFields />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Célula">
+              <Select name="celulaId" defaultValue="">
+                <option value="">Nenhuma</option>
+                {celulas.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nome}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Etapa do Trilho">
+              <Select name="etapaTrilho" defaultValue="">
+                <option value="">Selecione…</option>
+                {ETAPAS_TRILHO_ORDEM.map((etapa) => (
+                  <option key={etapa} value={etapa}>{ETAPA_TRILHO_LABEL[etapa]}</option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <Field label="Redes (Segure Ctrl/Cmd para múltipla seleção)">
+            <Select name="redesIds" multiple className="h-24">
+              {redes.map((r) => (
+                <option key={r.id} value={r.id}>{r.nome}</option>
+              ))}
+            </Select>
+          </Field>
           <Button type="submit">Cadastrar</Button>
         </form>
       </details>

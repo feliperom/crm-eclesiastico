@@ -3,7 +3,7 @@ import { obterMembro } from "@/lib/auth/access";
 import { CARGO, CARGO_LABEL, type Cargo } from "@/lib/constants";
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Select } from "@/components/ui";
 import { ConfirmButton } from "@/components/confirm-button";
-import { criarMembro, excluirMembro } from "./actions";
+import { promoverMembro, revogarAcessoUsuario } from "./actions";
 
 export default async function UsuariosPage() {
   const membro = await obterMembro();
@@ -17,33 +17,44 @@ export default async function UsuariosPage() {
     .split(",")
     .map((email) => email.trim())
     .filter(Boolean);
-  const membros = await prisma.membro.findMany({ orderBy: { createdAt: "asc" } });
+  const membrosParaConvidar = await prisma.membro.findMany({ 
+    where: { cargo: CARGO.COMUM },
+    orderBy: { nome: "asc" }
+  });
+
+  const membros = await prisma.membro.findMany({ 
+    where: { cargo: { in: [CARGO.ADMIN, CARGO.LIDER_CELULA] } },
+    orderBy: { createdAt: "asc" } 
+  });
 
   return (
     <div>
-      <PageHeader titulo="Usuários" descricao="Quem acessa o painel e com qual cargo" />
+      <PageHeader titulo="Usuários" descricao="Quem tem acesso ao painel e com qual cargo" />
 
       <details className="mb-5 rounded-2xl border border-line bg-surface p-4 shadow-sm">
-        <summary className="cursor-pointer text-sm font-semibold text-primary">+ Convidar usuário</summary>
-        <form action={criarMembro} className="mt-4 space-y-3">
-          <Field label="E-mail">
-            <Input name="email" type="email" placeholder="pessoa@igreja.org" required />
-          </Field>
+        <summary className="cursor-pointer text-sm font-semibold text-primary">+ Conceder acesso</summary>
+        <form action={promoverMembro} className="mt-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Nome (opcional)">
-              <Input name="nome" placeholder="Nome" />
+            <Field label="Membro">
+              <Select name="membroId" defaultValue="" required disabled={membrosParaConvidar.length === 0}>
+                <option value="" disabled>
+                  {membrosParaConvidar.length === 0 ? "Todos os membros já têm acesso" : "Selecione um membro…"}
+                </option>
+                {membrosParaConvidar.map(m => (
+                  <option key={m.id} value={m.id}>{m.nome || m.email}</option>
+                ))}
+              </Select>
             </Field>
-            <Field label="Cargo">
-              <Select name="cargo" defaultValue={CARGO.COMUM} required>
-                <option value={CARGO.COMUM}>{CARGO_LABEL.COMUM}</option>
+            <Field label="Cargo de Acesso">
+              <Select name="cargo" defaultValue={CARGO.LIDER_CELULA} required>
                 <option value={CARGO.LIDER_CELULA}>{CARGO_LABEL.LIDER_CELULA}</option>
                 <option value={CARGO.ADMIN}>{CARGO_LABEL.ADMIN}</option>
               </Select>
             </Field>
           </div>
-          <Button type="submit">Convidar</Button>
+          <Button type="submit" disabled={membrosParaConvidar.length === 0}>Conceder acesso</Button>
           <p className="text-xs text-muted">
-            A pessoa entra criando a conta em <strong>/registrar</strong> com este mesmo e-mail.
+            O membro deve criar a conta em <strong>/registrar</strong> com o e-mail cadastrado no sistema.
           </p>
         </form>
       </details>
@@ -80,12 +91,12 @@ export default async function UsuariosPage() {
                   <Badge cor={m.cargo === CARGO.ADMIN ? "bg-primary-tint text-primary" : "bg-surface-2 text-muted"}>
                     {CARGO_LABEL[m.cargo as Cargo]}
                   </Badge>
-                  <form action={excluirMembro}>
+                  <form action={revogarAcessoUsuario}>
                     <input type="hidden" name="id" value={m.id} />
                     <ConfirmButton
-                      titulo={`Remover ${m.nome || m.email}?`}
-                      descricao="A pessoa perde o acesso ao painel."
-                      triggerLabel="Remover usuário"
+                      titulo={`Revogar acesso de ${m.nome || m.email}?`}
+                      descricao="A pessoa voltará a ser apenas um membro comum e perderá o acesso ao painel."
+                      triggerLabel="Revogar acesso"
                       triggerClassName="text-sm text-muted/70 hover:text-danger"
                     >
                       ✕

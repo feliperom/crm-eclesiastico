@@ -1,0 +1,35 @@
+<h2>Como vamos rastrear o Trilho do Membro?</h2>
+<p class="subtitle">O membro avança por várias etapas: Novo Membro -> Consolidação -> Encontro -> Escola. Como devemos salvar isso?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Apenas Status Atual (Simples)</h3>
+      <p>Adicionamos um campo `etapaAtual` no perfil do membro. É rápido de implementar, mas não guarda o histórico (não saberemos a data que ele fez o Encontro com Deus no passado).</p>
+      <br>
+      <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; color: #334155;">
+        Membro {<br>
+        &nbsp;&nbsp;nome: "João",<br>
+        &nbsp;&nbsp;etapaAtual: "PRE_ENCONTRO"<br>
+        }
+      </div>
+    </div>
+  </div>
+  
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Histórico de Conclusões (Recomendado)</h3>
+      <p>Criamos uma tabela de histórico. Assim, registramos exatamente em qual data o membro concluiu cada etapa do trilho. Essencial para estatísticas da igreja.</p>
+      <br>
+      <div style="background: #f1f5f9; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; color: #334155;">
+        Membro { nome: "João" }<br><br>
+        HistoricoEtapas [<br>
+        &nbsp;&nbsp;{ etapa: "NOVO_MEMBRO", data: "10/01/2026" },<br>
+        &nbsp;&nbsp;{ etapa: "CONSOLIDACAO", data: "15/02/2026" }<br>
+        ]
+      </div>
+    </div>
+  </div>
+</div>

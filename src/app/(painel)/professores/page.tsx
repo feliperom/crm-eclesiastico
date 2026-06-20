@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Button, Card, EmptyState, Field, Input, PageHeader } from "@/components/ui";
 import { ConfirmButton } from "@/components/confirm-button";
-import { criarProfessor, excluirProfessor } from "./actions";
+import { criarProfessor, excluirProfessor, editarProfessor } from "./actions";
 
 export default async function ProfessoresPage() {
   const professores = await prisma.professor.findMany({
@@ -56,6 +56,24 @@ export default async function ProfessoresPage() {
                   </ConfirmButton>
                 </form>
               </div>
+              <details className="mt-3 border-t border-line pt-3">
+                <summary className="cursor-pointer text-xs font-semibold text-primary">Editar</summary>
+                <form action={editarProfessor} className="mt-3 space-y-3">
+                  <input type="hidden" name="id" value={professor.id} />
+                  <Field label="Nome">
+                    <Input name="nome" defaultValue={professor.nome} required />
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Telefone">
+                      <Input name="telefone" defaultValue={professor.telefone ?? ""} inputMode="tel" />
+                    </Field>
+                    <Field label="E-mail">
+                      <Input name="email" type="email" defaultValue={professor.email ?? ""} />
+                    </Field>
+                  </div>
+                  <Button type="submit">Salvar alterações</Button>
+                </form>
+              </details>
             </Card>
           ))}
         </div>

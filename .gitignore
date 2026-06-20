@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# artefatos de teste/preview
+.playwright-mcp/
+*.png
+.claude
+docs/
+AGENTS.md
+CLAUDE.md

@@ -26,6 +26,27 @@ export async function excluirRede(formData: FormData) {
   revalidatePath("/redes");
 }
 
+const editarRedeSchema = z.object({
+  id: z.string().min(1),
+  nome: z.string().trim().min(3, "Nome muito curto"),
+});
+
+export async function editarDadosRede(formData: FormData) {
+  await garantirAdmin();
+  const dados = editarRedeSchema.parse({
+    id: formData.get("id"),
+    nome: formData.get("nome"),
+  });
+
+  await prisma.rede.update({
+    where: { id: dados.id },
+    data: { nome: dados.nome },
+  });
+
+  revalidatePath(`/redes/${dados.id}`);
+  revalidatePath("/redes");
+}
+
 export async function adicionarMembroRede(formData: FormData) {
   await garantirAdmin();
   const id = z.string().min(1).parse(formData.get("id"));
@@ -53,6 +74,38 @@ export async function removerMembroRede(formData: FormData) {
     data: {
       membros: {
         disconnect: { id: membroId }
+      }
+    },
+  });
+  revalidatePath(`/redes/${id}`);
+}
+
+export async function adicionarLiderRede(formData: FormData) {
+  await garantirAdmin();
+  const id = z.string().min(1).parse(formData.get("id"));
+  const liderId = z.string().min(1).parse(formData.get("liderId"));
+
+  await prisma.rede.update({
+    where: { id },
+    data: {
+      lideres: {
+        connect: { id: liderId }
+      }
+    },
+  });
+  revalidatePath(`/redes/${id}`);
+}
+
+export async function removerLiderRede(formData: FormData) {
+  await garantirAdmin();
+  const id = z.string().min(1).parse(formData.get("id"));
+  const liderId = z.string().min(1).parse(formData.get("liderId"));
+
+  await prisma.rede.update({
+    where: { id },
+    data: {
+      lideres: {
+        disconnect: { id: liderId }
       }
     },
   });

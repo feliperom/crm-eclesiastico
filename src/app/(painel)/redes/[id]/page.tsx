@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Button, Card, EmptyState, PageHeader, Select } from "@/components/ui";
+import { Button, Card, EmptyState, PageHeader, Select, Field, Input } from "@/components/ui";
 import { ConfirmButton } from "@/components/confirm-button";
-import { adicionarMembroRede, removerMembroRede } from "../actions";
+import { adicionarMembroRede, removerMembroRede, adicionarLiderRede, removerLiderRede, editarDadosRede } from "../actions";
+import { CARGO } from "@/lib/constants";
 
 export default async function RedeDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,6 +12,7 @@ export default async function RedeDetalhePage({ params }: { params: Promise<{ id
     where: { id },
     include: {
       membros: { orderBy: { nome: "asc" } },
+      lideres: { orderBy: { nome: "asc" } },
     },
   });
 
@@ -31,12 +33,79 @@ export default async function RedeDetalhePage({ params }: { params: Promise<{ id
     orderBy: { nome: "asc" },
   });
 
+  const lideresDisponiveis = await prisma.membro.findMany({
+    where: {
+      cargo: { in: [CARGO.ADMIN, CARGO.LIDER_CELULA] },
+      NOT: {
+        redesLideradas: {
+          some: { id }
+        }
+      }
+    },
+    orderBy: { nome: "asc" },
+  });
+
   return (
     <div>
       <Link href="/redes" className="mb-2 inline-block text-sm text-muted">
         ← Redes
       </Link>
-      <PageHeader titulo={rede.nome} descricao="Gestão de membros da rede" />
+      <PageHeader titulo={rede.nome} descricao="Gestão de membros e liderança da rede" />
+
+      {/* Liderança da Rede */}
+      <section className="mb-8">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink">Liderança ({rede.lideres?.length || 0})</h2>
+        </div>
+
+        <form action={adicionarLiderRede} className="mb-3 flex gap-2">
+          <input type="hidden" name="id" value={rede.id} />
+          <Select name="liderId" defaultValue="" required className="flex-1" disabled={lideresDisponiveis.length === 0}>
+            <option value="" disabled>
+              {lideresDisponiveis.length === 0 ? "Não há líderes disponíveis" : "Adicionar líder…"}
+            </option>
+            {lideresDisponiveis.map((membro) => (
+              <option key={membro.id} value={membro.id}>
+                {membro.nome || membro.email}
+              </option>
+            ))}
+          </Select>
+          <Button type="submit" variante="secundario" disabled={lideresDisponiveis.length === 0}>
+            Adicionar
+          </Button>
+        </form>
+
+        {(!rede.lideres || rede.lideres.length === 0) ? (
+          <EmptyState titulo="Nenhum líder definido" descricao="Selecione líderes para esta rede." />
+        ) : (
+          <div className="space-y-2">
+            {rede.lideres.map((lider) => (
+              <Card key={lider.id} className="border-primary/20 bg-primary/5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/membros/${lider.id}`} className="font-medium text-ink hover:underline">
+                      {lider.nome || lider.email}
+                    </Link>
+                  </div>
+                  <form action={removerLiderRede}>
+                    <input type="hidden" name="id" value={rede.id} />
+                    <input type="hidden" name="liderId" value={lider.id} />
+                    <ConfirmButton
+                      titulo="Remover líder?"
+                      descricao={`${lider.nome || lider.email} deixará de ser líder desta rede.`}
+                      confirmarLabel="Remover"
+                      triggerLabel="Remover"
+                      triggerClassName="text-sm text-muted/70 hover:text-danger"
+                    >
+                      ✕
+                    </ConfirmButton>
+                  </form>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Membros da Rede */}
       <section>
@@ -92,6 +161,20 @@ export default async function RedeDetalhePage({ params }: { params: Promise<{ id
           </div>
         )}
       </section>
+
+      {/* Editar dados */}
+      <details className="mt-8 rounded-2xl border border-line bg-surface p-4 shadow-sm">
+        <summary className="cursor-pointer text-sm font-semibold text-primary">Editar dados gerais da rede</summary>
+        <form action={editarDadosRede} className="mt-4 space-y-3">
+          <input type="hidden" name="id" value={rede.id} />
+          <Field label="Nome da Rede">
+            <Input name="nome" defaultValue={rede.nome} required />
+          </Field>
+          <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark">
+            Salvar
+          </button>
+        </form>
+      </details>
     </div>
   );
 }

@@ -32,3 +32,27 @@ export async function excluirProfessor(formData: FormData) {
   await prisma.professor.delete({ where: { id } });
   revalidatePath("/professores");
 }
+
+const editarProfessorSchema = z.object({
+  id: z.string().min(1),
+  nome: z.string().trim().min(1, "Informe o nome"),
+  telefone: z.string().trim().optional(),
+  email: z.string().trim().optional(),
+});
+
+export async function editarProfessor(formData: FormData) {
+  await garantirAdmin();
+  const dados = editarProfessorSchema.parse({
+    id: formData.get("id"),
+    nome: formData.get("nome"),
+    telefone: formData.get("telefone"),
+    email: formData.get("email"),
+  });
+
+  await prisma.professor.update({
+    where: { id: dados.id },
+    data: { nome: dados.nome, telefone: dados.telefone || null, email: dados.email || null },
+  });
+
+  revalidatePath("/professores");
+}

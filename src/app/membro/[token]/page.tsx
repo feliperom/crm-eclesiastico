@@ -14,7 +14,7 @@ export default async function PortalMembroPage({ params }: { params: Promise<{ t
   return (
     <div className="mx-auto min-h-dvh max-w-xl px-4 py-8">
       <header className="mb-6">
-        <p className="text-sm font-medium text-primary">Escola Ministerial</p>
+        <p className="text-sm font-medium text-primary">Gestão Eclesiástica</p>
         <h1 className="text-2xl font-bold text-ink">Olá, {membro.nome.split(" ")[0]}!</h1>
         <p className="text-sm text-muted">Acompanhe sua frequência e situação por aqui.</p>
       </header>

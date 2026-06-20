@@ -72,9 +72,9 @@ export function Button({ variante = "primario", className = "", ...props }: Butt
   );
 }
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <label className="block">
+    <label className={`block ${className}`.trim()}>
       <span className="mb-1.5 block text-sm font-medium text-ink">{label}</span>
       {children}
     </label>

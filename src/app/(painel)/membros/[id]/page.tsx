@@ -6,8 +6,10 @@ import { obterBaseUrl } from "@/lib/base-url";
 import { linkWhatsApp, formatarData } from "@/lib/format";
 import { APOSTILA_STATUS_LABEL, ETAPAS_TRILHO_ORDEM, ETAPA_TRILHO_LABEL, type ApostilaStatus } from "@/lib/constants";
 import { Badge, Card, EmptyState, Field, Input, PageHeader, SituacaoBadge } from "@/components/ui";
+import { EnderecoFields } from "@/components/endereco-fields";
 import { CopiarLink } from "@/components/copiar-link";
-import { atualizarMembro, registrarEtapaTrilho, removerEtapaTrilho } from "../actions";
+import { ConfirmButton } from "@/components/confirm-button";
+import { atualizarMembro, excluirMembro, registrarEtapaTrilho, removerEtapaTrilho } from "../actions";
 import { garantirLideranca, verificarPertenceCelula } from "@/lib/auth/access";
 import { CARGO } from "@/lib/constants";
 
@@ -51,6 +53,36 @@ export default async function MembroDetalhePage({ params }: { params: Promise<{ 
       </Link>
       <PageHeader titulo={membro.nome} descricao={membro.telefone ?? undefined} />
 
+      {/* Dados Pessoais */}
+      <Card className="mb-5">
+        <h2 className="mb-3 text-sm font-semibold text-ink">Dados Pessoais</h2>
+        <div className="grid grid-cols-2 gap-4 text-sm text-ink">
+          <div>
+            <p className="text-xs text-muted">Data de Nascimento</p>
+            <p>{membro.dataNascimento ? formatarData(membro.dataNascimento) : "Não informada"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted">Data de Batismo</p>
+            <p>{membro.dataBatismo ? formatarData(membro.dataBatismo) : "Não informada"}</p>
+          </div>
+          <div className="col-span-2">
+            <p className="text-xs text-muted">Endereço</p>
+            <p>
+              {membro.endereco ? `${membro.endereco}${membro.numero ? `, ${membro.numero}` : ""}` : "Não informado"}
+              {membro.complemento ? ` - ${membro.complemento}` : ""}
+            </p>
+            {(membro.cep || membro.bairro || membro.cidade) && (
+              <p className="mt-1">
+                {membro.bairro ? `${membro.bairro}` : ""}
+                {membro.bairro && membro.cidade ? " - " : ""}
+                {membro.cidade ? `${membro.cidade}` : ""}
+                {membro.cep ? ` (${membro.cep})` : ""}
+              </p>
+            )}
+          </div>
+        </div>
+      </Card>
+
       {/* Link público (link mágico, sem senha) */}
       <Card className="mb-5">
         <h2 className="mb-2 text-sm font-semibold text-ink">Página do membro</h2>
@@ -76,42 +108,54 @@ export default async function MembroDetalhePage({ params }: { params: Promise<{ 
       </Card>
 
       {/* Jornada (Trilho) */}
-      <h2 className="mt-8 mb-3 text-sm font-semibold text-ink">Jornada (Trilho)</h2>
-      <div className="mb-8 space-y-3">
+      <h2 className="mt-8 mb-4 text-sm font-semibold text-ink">Jornada (Trilho)</h2>
+      <div className="relative mb-10 ml-3 space-y-6 before:absolute before:inset-y-3 before:left-0 before:-translate-x-px before:w-0.5 before:bg-line/60">
         {ETAPAS_TRILHO_ORDEM.map((etapa) => {
           const historico = membro.historicoTrilho.find((h) => h.etapa === etapa);
           const concluido = !!historico;
           return (
-            <Card key={etapa} className={`flex items-center justify-between ${concluido ? "border-primary/30 bg-primary/5" : ""}`}>
-              <div className="flex items-center gap-3">
-                <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${concluido ? "bg-primary text-white" : "bg-surface-2 text-muted"}`}>
-                  {concluido ? "✓" : ""}
-                </div>
+            <div key={etapa} className="relative pl-8">
+              {/* Dot da Timeline */}
+              <span
+                className={`absolute left-0 top-1/2 grid h-6 w-6 -translate-x-[11.5px] -translate-y-1/2 place-items-center rounded-full ring-4 ring-canvas transition-all duration-300 ${
+                  concluido ? "bg-primary text-white" : "bg-surface-2 ring-1 ring-line text-transparent"
+                }`}
+              >
+                {concluido && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                )}
+              </span>
+
+              {/* Card de Conteúdo */}
+              <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border bg-surface p-4 shadow-sm transition-all hover:shadow-md ${concluido ? "border-primary/20" : "border-line"}`}>
                 <div>
-                  <p className={`font-medium ${concluido ? "text-ink" : "text-muted"}`}>{ETAPA_TRILHO_LABEL[etapa]}</p>
-                  {concluido && (
-                    <p className="text-xs text-muted">Concluído em {formatarData(historico.dataConclusao)}</p>
-                  )}
+                  <h3 className={`font-medium ${concluido ? "text-ink" : "text-muted"}`}>{ETAPA_TRILHO_LABEL[etapa]}</h3>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {concluido ? `Concluído em ${formatarData(historico.dataConclusao)}` : "Pendente"}
+                  </p>
                 </div>
+                
+                {concluido ? (
+                  <form action={removerEtapaTrilho} className="mt-2 sm:mt-0">
+                    <input type="hidden" name="membroId" value={membro.id} />
+                    <input type="hidden" name="etapa" value={etapa} />
+                    <button type="submit" className="text-[11px] font-semibold text-muted hover:text-danger hover:underline">
+                      Desfazer
+                    </button>
+                  </form>
+                ) : (
+                  <form action={registrarEtapaTrilho} className="mt-2 sm:mt-0">
+                    <input type="hidden" name="membroId" value={membro.id} />
+                    <input type="hidden" name="etapa" value={etapa} />
+                    <button type="submit" className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-white">
+                      Registrar conclusão
+                    </button>
+                  </form>
+                )}
               </div>
-              {concluido ? (
-                <form action={removerEtapaTrilho}>
-                  <input type="hidden" name="membroId" value={membro.id} />
-                  <input type="hidden" name="etapa" value={etapa} />
-                  <button type="submit" className="text-xs font-semibold text-muted hover:text-danger hover:underline">
-                    Desfazer
-                  </button>
-                </form>
-              ) : (
-                <form action={registrarEtapaTrilho}>
-                  <input type="hidden" name="membroId" value={membro.id} />
-                  <input type="hidden" name="etapa" value={etapa} />
-                  <button type="submit" className="rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-line">
-                    Registrar
-                  </button>
-                </form>
-              )}
-            </Card>
+            </div>
           );
         })}
       </div>
@@ -183,11 +227,48 @@ export default async function MembroDetalhePage({ params }: { params: Promise<{ 
                 <Input name="email" type="email" defaultValue={membro.email ?? ""} />
               </Field>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Data de Nascimento">
+                <Input name="dataNascimento" type="date" defaultValue={membro.dataNascimento ? membro.dataNascimento.toISOString().split('T')[0] : ""} />
+              </Field>
+              <Field label="Data de Batismo">
+                <Input name="dataBatismo" type="date" defaultValue={membro.dataBatismo ? membro.dataBatismo.toISOString().split('T')[0] : ""} />
+              </Field>
+            </div>
+            <EnderecoFields
+              defaultCep={membro.cep ?? ""}
+              defaultBairro={membro.bairro ?? ""}
+              defaultCidade={membro.cidade ?? ""}
+              defaultEndereco={membro.endereco ?? ""}
+              defaultNumero={membro.numero ?? ""}
+              defaultComplemento={membro.complemento ?? ""}
+            />
             <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark">
               Salvar
             </button>
           </form>
         </details>
+      )}
+
+      {/* Zona de Perigo */}
+      {isAdmin && (
+        <div className="mt-8 rounded-2xl border border-danger/30 bg-danger/5 p-4">
+          <h2 className="mb-1 text-sm font-semibold text-danger">Zona de Perigo</h2>
+          <p className="mb-4 text-xs text-danger/80">
+            A exclusão é permanente e removerá todo o histórico de trilho e matrículas deste membro.
+          </p>
+          <form action={excluirMembro}>
+            <input type="hidden" name="id" value={membro.id} />
+            <ConfirmButton
+              titulo={`Excluir ${membro.nome}?`}
+              descricao="Esta ação não pode ser desfeita. Histórico e matrículas serão perdidos."
+              triggerLabel="Excluir Membro"
+              triggerClassName="rounded-xl bg-danger px-4 py-2 text-sm font-semibold text-white hover:bg-danger-dark"
+            >
+              Sim, Excluir Definitivamente
+            </ConfirmButton>
+          </form>
+        </div>
       )}
     </div>
   );

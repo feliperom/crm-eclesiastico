@@ -68,12 +68,23 @@ model Membro {
   token      String   @unique @default(cuid())
   createdAt  DateTime @default(now())
 
+  dataNascimento DateTime?
+  dataBatismo    DateTime?
+  
+  endereco       String?
+  numero         String?
+  complemento    String?
+  cep            String?
+  bairro         String?
+  cidade         String?
+
   celulaId   String?
   celula     Celula?  @relation("MembroCelula", fields: [celulaId], references: [id], onDelete: SetNull)
   
   celulasLideradas Celula[] @relation("LiderCelula")
 
-  redes      Rede[]   @relation("MembroRede")
+  redes          Rede[]   @relation("MembroRede")
+  redesLideradas Rede[]   @relation("LiderRede")
   
   matriculas Matricula[]
   historicoTrilho HistoricoTrilho[]
@@ -101,6 +112,7 @@ model Rede {
   id         String   @id @default(cuid())
   nome       String
   membros    Membro[] @relation("MembroRede")
+  lideres    Membro[] @relation("LiderRede")
 
   @@map("redes")
 }

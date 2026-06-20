@@ -10,6 +10,10 @@ import {
   excluirModulo,
   excluirNivel,
   excluirProva,
+  editarMateria,
+  editarModulo,
+  editarNivel,
+  editarProva,
 } from "./actions";
 
 export default async function CurriculoPage() {
@@ -46,7 +50,19 @@ export default async function CurriculoPage() {
           {niveis.map((nivel) => (
             <section key={nivel.id}>
               <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-base font-bold text-ink">{nivel.nome}</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-base font-bold text-ink">{nivel.nome}</h2>
+                  <details className="relative">
+                    <summary className="cursor-pointer text-xs font-semibold text-primary">Editar</summary>
+                    <div className="absolute left-0 top-full z-10 mt-1 w-64 rounded-xl border border-line bg-surface p-3 shadow-lg">
+                      <form action={editarNivel} className="flex gap-2">
+                        <input type="hidden" name="id" value={nivel.id} />
+                        <Input name="nome" defaultValue={nivel.nome} required className="flex-1" />
+                        <Button type="submit" className="px-3">✓</Button>
+                      </form>
+                    </div>
+                  </details>
+                </div>
                 <form action={excluirNivel}>
                   <input type="hidden" name="id" value={nivel.id} />
                   <ConfirmButton
@@ -67,6 +83,21 @@ export default async function CurriculoPage() {
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-ink">{modulo.nome}</p>
                         <Badge cor="bg-warn-tint text-warn">máx. {modulo.maxFaltas} faltas</Badge>
+                        <details className="relative">
+                          <summary className="cursor-pointer text-xs font-semibold text-primary ml-2">Editar</summary>
+                          <div className="absolute left-0 top-full z-10 mt-1 w-72 rounded-xl border border-line bg-surface p-3 shadow-lg">
+                            <form action={editarModulo} className="space-y-3">
+                              <input type="hidden" name="id" value={modulo.id} />
+                              <Field label="Nome">
+                                <Input name="nome" defaultValue={modulo.nome} required />
+                              </Field>
+                              <Field label="Máx. Faltas">
+                                <Input name="maxFaltas" type="number" defaultValue={modulo.maxFaltas} min={0} required />
+                              </Field>
+                              <Button type="submit" className="w-full">Salvar</Button>
+                            </form>
+                          </div>
+                        </details>
                       </div>
                       {modulo._count.turmas === 0 ? (
                         <form action={excluirModulo}>
@@ -89,8 +120,20 @@ export default async function CurriculoPage() {
                     <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Aulas</p>
                     <ul className="mb-3 space-y-1">
                       {modulo.materias.map((materia) => (
-                        <li key={materia.id} className="flex items-center justify-between text-sm text-ink">
-                          <span>• {materia.nome}</span>
+                        <li key={materia.id} className="group relative flex items-center justify-between text-sm text-ink">
+                          <div className="flex items-center gap-2">
+                            <span>• {materia.nome}</span>
+                            <details className="relative">
+                              <summary className="cursor-pointer text-xs font-semibold text-primary ml-2 opacity-0 transition-opacity group-hover:opacity-100">Editar</summary>
+                              <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-xl border border-line bg-surface p-3 shadow-lg">
+                                <form action={editarMateria} className="flex gap-2">
+                                  <input type="hidden" name="id" value={materia.id} />
+                                  <Input name="nome" defaultValue={materia.nome} required className="flex-1" />
+                                  <Button type="submit" className="px-3">✓</Button>
+                                </form>
+                              </div>
+                            </details>
+                          </div>
                           <form action={excluirMateria}>
                             <input type="hidden" name="id" value={materia.id} />
                             <ConfirmButton
@@ -121,13 +164,46 @@ export default async function CurriculoPage() {
                     </p>
                     <ul className="mb-2 space-y-1">
                       {modulo.provas.map((prova) => (
-                        <li key={prova.id} className="flex items-center justify-between text-sm text-ink">
-                          <span>
-                            • {prova.nome}{" "}
-                            <span className="text-xs text-muted">
-                              (nota {prova.notaMaxima} · {prova.materias.length} aula{prova.materias.length === 1 ? "" : "s"})
+                        <li key={prova.id} className="group relative flex items-center justify-between text-sm text-ink">
+                          <div className="flex items-center gap-2">
+                            <span>
+                              • {prova.nome}{" "}
+                              <span className="text-xs text-muted">
+                                (nota {prova.notaMaxima} · {prova.materias.length} aula{prova.materias.length === 1 ? "" : "s"})
+                              </span>
                             </span>
-                          </span>
+                            <details className="relative">
+                              <summary className="cursor-pointer text-xs font-semibold text-primary ml-2 opacity-0 transition-opacity group-hover:opacity-100">Editar</summary>
+                              <div className="absolute left-0 top-full z-20 mt-1 w-72 rounded-xl border border-line bg-surface p-3 shadow-lg">
+                                <form action={editarProva} className="space-y-3">
+                                  <input type="hidden" name="id" value={prova.id} />
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <Field label="Nome">
+                                      <Input name="nome" defaultValue={prova.nome} required />
+                                    </Field>
+                                    <Field label="Nota máx">
+                                      <Input name="notaMaxima" type="number" step="0.5" defaultValue={prova.notaMaxima} min={1} required />
+                                    </Field>
+                                  </div>
+                                  <div>
+                                    <p className="mb-1.5 text-xs font-medium text-ink">Aulas na prova</p>
+                                    <div className="max-h-32 space-y-1.5 overflow-y-auto">
+                                      {modulo.materias.map((materia) => {
+                                        const isChecked = prova.materias.some((pm) => pm.materiaId === materia.id);
+                                        return (
+                                          <label key={materia.id} className="flex items-center gap-2 text-xs text-ink">
+                                            <input type="checkbox" name="materiaIds" value={materia.id} defaultChecked={isChecked} className="h-3 w-3 accent-primary" />
+                                            {materia.nome}
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                  <Button type="submit" className="w-full text-xs">Salvar</Button>
+                                </form>
+                              </div>
+                            </details>
+                          </div>
                           <form action={excluirProva}>
                             <input type="hidden" name="id" value={prova.id} />
                             <ConfirmButton
