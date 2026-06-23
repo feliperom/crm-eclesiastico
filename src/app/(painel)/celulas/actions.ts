@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { garantirAdmin, garantirLideranca, verificarDonoCelula } from "@/lib/auth/access";
+import { CARGO } from "@/lib/constants";
 
 const criarCelulaSchema = z.object({
   nome: z.string().trim().min(3, "Nome muito curto"),
@@ -60,14 +61,44 @@ export async function excluirCelula(formData: FormData) {
   revalidatePath("/celulas");
 }
 
-export async function definirLider(formData: FormData) {
+export async function adicionarLiderCelula(formData: FormData) {
   await garantirAdmin();
   const id = z.string().min(1).parse(formData.get("id"));
-  const liderId = formData.get("liderId");
+  const liderId = z.string().min(1).parse(formData.get("liderId"));
+
+  const membro = await prisma.membro.findUnique({ where: { id: liderId } });
+  
+  await prisma.celula.update({
+    where: { id },
+    data: {
+      lideres: {
+        connect: { id: liderId }
+      }
+    },
+  });
+
+  if (membro && membro.cargo === CARGO.COMUM) {
+    await prisma.membro.update({
+      where: { id: liderId },
+      data: { cargo: CARGO.LIDER_CELULA },
+    });
+  }
+  revalidatePath(`/celulas/${id}`);
+  revalidatePath("/celulas");
+}
+
+export async function removerLiderCelula(formData: FormData) {
+  await garantirAdmin();
+  const id = z.string().min(1).parse(formData.get("id"));
+  const liderId = z.string().min(1).parse(formData.get("liderId"));
 
   await prisma.celula.update({
     where: { id },
-    data: { liderId: liderId ? String(liderId) : null },
+    data: {
+      lideres: {
+        disconnect: { id: liderId }
+      }
+    },
   });
   revalidatePath(`/celulas/${id}`);
   revalidatePath("/celulas");

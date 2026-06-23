@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { garantirAdmin } from "@/lib/auth/access";
+import { CARGO } from "@/lib/constants";
 
 const criarRedeSchema = z.object({
   nome: z.string().trim().min(3, "Nome muito curto"),
@@ -85,6 +86,8 @@ export async function adicionarLiderRede(formData: FormData) {
   const id = z.string().min(1).parse(formData.get("id"));
   const liderId = z.string().min(1).parse(formData.get("liderId"));
 
+  const membro = await prisma.membro.findUnique({ where: { id: liderId } });
+
   await prisma.rede.update({
     where: { id },
     data: {
@@ -93,6 +96,13 @@ export async function adicionarLiderRede(formData: FormData) {
       }
     },
   });
+
+  if (membro && membro.cargo === CARGO.COMUM) {
+    await prisma.membro.update({
+      where: { id: liderId },
+      data: { cargo: CARGO.LIDER_CELULA },
+    });
+  }
   revalidatePath(`/redes/${id}`);
 }
 

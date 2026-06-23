@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { Button, CardLink, EmptyState, Field, Input, PageHeader, Select } from "@/components/ui";
@@ -105,19 +106,37 @@ export default async function MembrosPage({ searchParams }: { searchParams: Prom
           <EmptyState titulo="Nenhum membro ainda" descricao="Cadastre o primeiro membro acima." />
         )
       ) : (
-        <div className="space-y-2">
-          {busca ? <p className="text-xs text-muted">{membros.length} resultado(s) para “{busca}”.</p> : null}
-          {membros.map((membro) => (
-            <CardLink key={membro.id} href={`/membros/${membro.id}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-ink">{membro.nome}</p>
-                  {membro.telefone ? <p className="truncate text-sm text-muted">{membro.telefone}</p> : null}
-                </div>
-                <span className="shrink-0 text-xs text-muted">{membro._count.matriculas} turma(s)</span>
-              </div>
-            </CardLink>
-          ))}
+        <div className="overflow-x-auto rounded-2xl border border-line bg-surface shadow-sm">
+          {busca ? <p className="p-4 text-xs text-muted border-b border-line">{membros.length} resultado(s) para “{busca}”.</p> : null}
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-surface-2 text-muted">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Nome</th>
+                <th className="px-4 py-3 font-semibold">Telefone</th>
+                <th className="px-4 py-3 font-semibold text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {membros.map((membro) => (
+                <tr key={membro.id} className="hover:bg-primary/5 transition-colors">
+                  <td className="px-4 py-3 font-medium text-ink">
+                    {membro.nome}
+                  </td>
+                  <td className="px-4 py-3 text-muted">
+                    {membro.telefone || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link 
+                      href={`/membros/${membro.id}`}
+                      className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                    >
+                      Ver detalhes &rarr;
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

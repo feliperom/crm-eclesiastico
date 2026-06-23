@@ -67,8 +67,11 @@ export async function verificarDonoCelula(celulaId: string): Promise<boolean> {
   if (!membro) return false;
   if (membro.cargo === CARGO.ADMIN) return true;
 
-  const celula = await prisma.celula.findUnique({ where: { id: celulaId } });
-  return celula?.liderId === membro.id;
+  const celula = await prisma.celula.findUnique({ 
+    where: { id: celulaId },
+    include: { lideres: true }
+  });
+  return celula?.lideres.some(l => l.id === membro.id) ?? false;
 }
 
 export async function verificarPertenceCelula(membroAlvoId: string): Promise<boolean> {
@@ -79,6 +82,9 @@ export async function verificarPertenceCelula(membroAlvoId: string): Promise<boo
   const membroAlvo = await prisma.membro.findUnique({ where: { id: membroAlvoId } });
   if (!membroAlvo?.celulaId) return false;
 
-  const celula = await prisma.celula.findUnique({ where: { id: membroAlvo.celulaId } });
-  return celula?.liderId === membro.id;
+  const celula = await prisma.celula.findUnique({ 
+    where: { id: membroAlvo.celulaId },
+    include: { lideres: true }
+  });
+  return celula?.lideres.some(l => l.id === membro.id) ?? false;
 }

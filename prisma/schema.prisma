@@ -99,8 +99,7 @@ model Celula {
   horario    String?
   bairro     String?
   
-  liderId    String?
-  lider      Membro?  @relation("LiderCelula", fields: [liderId], references: [id], onDelete: SetNull)
+  lideres    Membro[] @relation("LiderCelula")
   
   membros    Membro[] @relation("MembroCelula")
   createdAt  DateTime @default(now())

@@ -37,7 +37,7 @@ export default async function proxy(request: NextRequest) {
   let response: NextResponse | Response;
 
   const pathname = request.nextUrl.pathname;
-  const rotasPublicas = ["/login", "/registrar", "/sair"];
+  const rotasPublicas = ["/login", "/registrar", "/sair", "/cadastro"];
   const isPublica = rotasPublicas.some(r => pathname === r || pathname.startsWith(`${r}/`)) || pathname.startsWith("/membro");
 
   if (isPublica) {

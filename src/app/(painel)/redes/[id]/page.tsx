@@ -35,7 +35,6 @@ export default async function RedeDetalhePage({ params }: { params: Promise<{ id
 
   const lideresDisponiveis = await prisma.membro.findMany({
     where: {
-      cargo: { in: [CARGO.ADMIN, CARGO.LIDER_CELULA] },
       NOT: {
         redesLideradas: {
           some: { id }

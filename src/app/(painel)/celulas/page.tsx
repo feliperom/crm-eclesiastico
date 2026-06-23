@@ -11,9 +11,9 @@ export default async function CelulasPage() {
   const isAdmin = membroLogado.cargo === CARGO.ADMIN;
 
   const celulas = await prisma.celula.findMany({
-    where: isAdmin ? {} : { liderId: membroLogado.id || "" },
+    where: isAdmin ? {} : { lideres: { some: { id: membroLogado.id || "" } } },
     include: {
-      lider: true,
+      lideres: true,
       _count: { select: { membros: true } },
     },
     orderBy: { nome: "asc" },
@@ -76,8 +76,8 @@ export default async function CelulasPage() {
                 </div>
                 
                 <div className="mb-4 space-y-1 text-sm text-muted">
-                  {celula.lider ? (
-                    <p>Líder: <span className="text-ink">{celula.lider.nome || celula.lider.email}</span></p>
+                  {celula.lideres && celula.lideres.length > 0 ? (
+                    <p>Líderes: <span className="text-ink">{celula.lideres.map(l => l.nome || l.email).join(', ')}</span></p>
                   ) : (
                     <p className="text-warning">Sem líder definido</p>
                   )}

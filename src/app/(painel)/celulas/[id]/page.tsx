@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Badge, Button, Card, EmptyState, PageHeader, Select, Field, Input } from "@/components/ui";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
 import { ConfirmButton } from "@/components/confirm-button";
-import { adicionarMembroCelula, definirLider, editarDadosCelula, removerMembroCelula } from "../actions";
+import { adicionarMembroCelula, adicionarLiderCelula, removerLiderCelula, editarDadosCelula, removerMembroCelula } from "../actions";
 import { CARGO } from "@/lib/constants";
 import { garantirLideranca } from "@/lib/auth/access";
 
@@ -16,7 +16,7 @@ export default async function CelulaDetalhePage({ params }: { params: Promise<{ 
   const celula = await prisma.celula.findUnique({
     where: { id },
     include: {
-      lider: true,
+      lideres: true,
       membros: { orderBy: { nome: "asc" } },
     },
   });
@@ -27,7 +27,7 @@ export default async function CelulaDetalhePage({ params }: { params: Promise<{ 
   const isAdmin = membroLogado.cargo === CARGO.ADMIN;
 
   // Se for LIDER_CELULA, só pode ver a sua própria célula
-  if (!isAdmin && celula.liderId !== membroLogado.id) {
+  if (!isAdmin && !celula.lideres?.some(l => l.id === membroLogado.id)) {
     notFound();
   }
 
@@ -41,7 +41,11 @@ export default async function CelulaDetalhePage({ params }: { params: Promise<{ 
   // ou talvez qualquer membro se quisermos dar flexibilidade, mas vamos listar todos.
   const possiveisLideres = await prisma.membro.findMany({
     where: {
-      cargo: { in: [CARGO.ADMIN, CARGO.LIDER_CELULA] }
+      NOT: {
+        celulasLideradas: {
+          some: { id }
+        }
+      }
     },
     orderBy: { nome: "asc" },
   });
@@ -56,33 +60,63 @@ export default async function CelulaDetalhePage({ params }: { params: Promise<{ 
         descricao={`${celula.bairro ? celula.bairro + " · " : ""}${celula.dia || ""} ${celula.horario || ""}`}
       />
 
-      {/* Liderança */}
+      {/* Liderança da Célula */}
       <section className="mb-6">
-        <h2 className="mb-2 text-sm font-semibold text-ink">Liderança da Célula</h2>
-        <Card className="flex items-center justify-between p-3">
-          <div className="min-w-0">
-            <p className="font-medium text-ink">Líder Atual</p>
-            <p className="text-sm text-muted">{celula.lider ? celula.lider.nome : "Nenhum líder definido"}</p>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink">Liderança ({celula.lideres?.length || 0})</h2>
+        </div>
+
+        {isAdmin && (
+          <form action={adicionarLiderCelula} className="mb-3 flex gap-2">
+            <input type="hidden" name="id" value={celula.id} />
+            <Select name="liderId" defaultValue="" required className="flex-1" disabled={possiveisLideres.length === 0}>
+              <option value="" disabled>
+                {possiveisLideres.length === 0 ? "Não há líderes disponíveis" : "Adicionar líder…"}
+              </option>
+              {possiveisLideres.map((membro) => (
+                <option key={membro.id} value={membro.id}>
+                  {membro.nome || membro.email}
+                </option>
+              ))}
+            </Select>
+            <Button type="submit" variante="secundario" disabled={possiveisLideres.length === 0}>
+              Adicionar
+            </Button>
+          </form>
+        )}
+
+        {(!celula.lideres || celula.lideres.length === 0) ? (
+          <EmptyState titulo="Nenhum líder definido" descricao="Selecione líderes para esta célula." />
+        ) : (
+          <div className="space-y-2">
+            {celula.lideres.map((lider) => (
+              <Card key={lider.id} className="border-primary/20 bg-primary/5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link href={`/membros/${lider.id}`} className="font-medium text-ink hover:underline">
+                      {lider.nome || lider.email}
+                    </Link>
+                  </div>
+                  {isAdmin && (
+                    <form action={removerLiderCelula}>
+                      <input type="hidden" name="id" value={celula.id} />
+                      <input type="hidden" name="liderId" value={lider.id} />
+                      <ConfirmButton
+                        titulo="Remover líder?"
+                        descricao={`${lider.nome || lider.email} deixará de ser líder desta célula.`}
+                        confirmarLabel="Remover"
+                        triggerLabel="Remover"
+                        triggerClassName="text-sm text-muted/70 hover:text-danger"
+                      >
+                        ✕
+                      </ConfirmButton>
+                    </form>
+                  )}
+                </div>
+              </Card>
+            ))}
           </div>
-          {isAdmin && (
-            <form action={definirLider} className="shrink-0">
-              <input type="hidden" name="id" value={celula.id} />
-              <AutoSubmitSelect
-                name="liderId"
-                defaultValue={celula.liderId ?? ""}
-                aria-label="Líder da célula"
-                className={CLASSE_SELECT_LINHA}
-              >
-                <option value="">Sem líder</option>
-                {possiveisLideres.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.nome || l.email}
-                  </option>
-                ))}
-              </AutoSubmitSelect>
-            </form>
-          )}
-        </Card>
+        )}
       </section>
 
       {/* Membros da Célula */}

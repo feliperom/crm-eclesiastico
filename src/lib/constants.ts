@@ -36,6 +36,7 @@ export const ETAPA_TRILHO = {
   POS_ENCONTRO: "POS_ENCONTRO",
   ESCOLA_NIVEL_1: "ESCOLA_NIVEL_1",
   ESCOLA_NIVEL_2: "ESCOLA_NIVEL_2",
+  TRILHO_CONCLUIDO: "TRILHO_CONCLUIDO",
 } as const;
 
 export type EtapaTrilho = (typeof ETAPA_TRILHO)[keyof typeof ETAPA_TRILHO];
@@ -48,6 +49,7 @@ export const ETAPA_TRILHO_LABEL: Record<EtapaTrilho, string> = {
   POS_ENCONTRO: "Pós-encontro",
   ESCOLA_NIVEL_1: "Escola Ministerial - Nível 1",
   ESCOLA_NIVEL_2: "Escola Ministerial - Nível 2",
+  TRILHO_CONCLUIDO: "Trilho Concluído",
 };
 
 export const ETAPAS_TRILHO_ORDEM: EtapaTrilho[] = [
@@ -58,6 +60,7 @@ export const ETAPAS_TRILHO_ORDEM: EtapaTrilho[] = [
   ETAPA_TRILHO.POS_ENCONTRO,
   ETAPA_TRILHO.ESCOLA_NIVEL_1,
   ETAPA_TRILHO.ESCOLA_NIVEL_2,
+  ETAPA_TRILHO.TRILHO_CONCLUIDO,
 ];
 
 export const MATRICULA_STATUS = {
